@@ -6,7 +6,7 @@ use std::sync::Arc;
 use warp::{path::end, reject, Filter, Rejection, Reply};
 
 use crate::{
-    api::authorization::with_authorization_no_ret,
+    api::helpers::authorization::with_authorization_no_ret,
     database::models::internal_user::{InternalUser, NewInternalUser, SuccessfullLogin},
     database::schema,
     database::{get_connection, DatabaseConfig},

@@ -1,3 +1,3 @@
-pub mod authorization;
+pub mod helpers;
 pub mod internal;
 pub mod root;

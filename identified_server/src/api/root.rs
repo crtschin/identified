@@ -6,7 +6,7 @@ use std::sync::Arc;
 use warp::{path::end, reject, Filter, Rejection, Reply};
 
 use crate::{
-    api::authorization::{with_authorization_admin_no_ret, with_authorization_no_ret},
+    api::helpers::authorization::{with_authorization_admin_no_ret, with_authorization_no_ret},
     api::internal::filters::main_filter as internal_filter,
     database::models::internal_user::{InternalUser, NewInternalUser, SuccessfullLogin},
     database::schema,
@@ -18,7 +18,7 @@ use crate::{
 pub mod filters {
     use super::*;
 
-    pub fn root_filter(
+    pub fn main_filter(
         db_config: Arc<DatabaseConfig>,
         session: Session,
     ) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
@@ -29,10 +29,36 @@ pub mod filters {
         let all = warp::path("all")
             .and(with_authorization_admin_no_ret(session.clone()))
             .and(all_filter(session.clone()));
+        let check = warp::path("check")
+            .and(with_authorization_no_ret(session.clone()))
+            .and(check_filter(db_config.clone(), session.clone()));
         let internal = warp::path("internal")
             .and(with_authorization_no_ret(session.clone()))
             .and(internal_filter(db_config, session));
-        warp::any().and(internal.or(login.or(all.or(register))))
+        warp::any().and(check.or(internal.or(login.or(all.or(register)))))
+    }
+
+    pub fn all_filter(
+        session: Session,
+    ) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
+        warp::any()
+            .and(warp::get())
+            .and(with_session(session))
+            .and(end())
+            .and_then(handlers::all)
+    }
+
+    pub fn check_filter(
+        db_config: Arc<DatabaseConfig>,
+        session: Session,
+    ) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
+        warp::any()
+            .and(warp::get())
+            .and(with_db_config(db_config))
+            .and(with_session(session))
+            .and(warp::body::json())
+            .and(end())
+            .and_then(handlers::check)
     }
 
     pub fn login_filter(
@@ -46,16 +72,6 @@ pub mod filters {
             .and(warp::body::json())
             .and(end())
             .and_then(handlers::login)
-    }
-
-    pub fn all_filter(
-        session: Session,
-    ) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
-        warp::any()
-            .and(warp::get())
-            .and(with_session(session))
-            .and(end())
-            .and_then(handlers::all)
     }
 
     pub fn register_filter(
@@ -85,6 +101,31 @@ pub mod handlers {
     pub struct LoginSubmission {
         pub email: String,
         pub password: String,
+    }
+
+    #[derive(Serialize, Deserialize)]
+    pub struct CheckRequest {
+        pub user_id: i64,
+        pub permission_id: i64,
+    }
+
+    pub async fn all(session: Session) -> Result<impl Reply, Rejection> {
+        let connection = get_connection(&session)?;
+        let results = InternalUser::all(&connection);
+        Ok(warp::reply::json(&results))
+    }
+
+    pub async fn check(
+        db_config: Arc<DatabaseConfig>,
+        session: Session,
+        check: CheckRequest,
+    ) -> Result<impl Reply, Rejection> {
+        let connection = get_connection(&session)?;
+        // TODO:
+        // 1. Find permissions the internal user the user belongs to has
+        // 2. Find the parent permissions of the requested permission
+        // 3. Check if any of the user's role has any of those permissions
+        Ok(warp::reply::json(&0))
     }
 
     pub async fn login(
@@ -121,12 +162,6 @@ pub mod handlers {
             }
             Err(_) => todo!(),
         }
-    }
-
-    pub async fn all(session: Session) -> Result<impl Reply, Rejection> {
-        let connection = get_connection(&session)?;
-        let results = InternalUser::all(&connection);
-        Ok(warp::reply::json(&results))
     }
 
     // TODO: should be user not internaluser

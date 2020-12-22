@@ -1,5 +1,5 @@
 use identified::{
-    api::internal::filters::internal_filter,
+    api::root::filters::root_filter,
     database::models::internal_user::InternalUser,
     database::{establish_connection, get_connection, DatabaseConfig},
     utils::common::Session,
@@ -16,7 +16,6 @@ async fn main() {
     // let is_debug = !args.iter().any(|arg| arg.eq("--release"));
 
     // Start the server and add routes
-    // TODO: Insert root user if they don't already exist
     let db_pool = establish_connection();
     let db_config = Arc::new(DatabaseConfig {
         iterations: NonZeroU32::new(1000).unwrap(),
@@ -59,7 +58,7 @@ async fn main() {
 
     // If the program was not built using release, try and use listenfd for
     // hot-reloading
-    let server = warp::serve(internal_filter(db_config, session));
+    let server = warp::serve(root_filter(db_config, session));
     if let Ok(profile) = std::env::var("PROFILE") {
         if let "release" = profile.as_str() {
             server.run(([127, 0, 0, 1], 3000)).await;

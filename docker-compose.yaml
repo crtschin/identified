@@ -4,25 +4,27 @@ services:
   db:
     env_file:
       - .env
-    environment:
-      POSTGRES_USER: "${POSTGRES_USER}"
-      POSTGRES_DB: "${POSTGRES_DB}"
-      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
     image: postgres:9.6-alpine
     container_name: "${POSTGRES_DB}"
     ports:
       - "5432:5432"
     volumes:
       - dbdata:/var/lib/postgresql/data
-  web:
+  server:
+    command: "diesel migration run --database-url=${DATABASE_URL}"
     restart: on-failure
     depends_on:
       - db
-    build: .
+    build: identified_server
     env_file:
       - .env
     ports:
       - "8000:8000"
+  web:
+    restart: on-failure
+    depends_on:
+      - db
+    build: identified_web
 
 volumes:
   dbdata:

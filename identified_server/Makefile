@@ -3,7 +3,7 @@ VERSION=$(shell git rev-parse HEAD)
 SEMVER_VERSION=$(shell grep version Cargo.toml | awk -F"\"" '{print $$2}' | head -n 1)
 REPO=crtschin
 SHELL := /bin/bash
-include .env
+include ../.env
 
 # If the first argument is "run"...
 ifeq (diesel,$(firstword $(MAKECMDGOALS)))
@@ -25,13 +25,13 @@ define WAIT_FOR_POSTGRES
 endef
 
 has_secrets:
-	@[[ $(POSTGRES_DB) ]] || (echo "source env.sh first"; exit 2)
+	@[[ $(POSTGRES_DB) ]] || (echo "No secrets set"; exit 2)
 
 no_postgres:
-	@[ -z "$$(docker ps -q -f ancestor="postgres:9.6")" ] || (echo "db running"; exit 2)
+	@[ -z "$$(docker ps -q -f ancestor="postgres:9.6")" ] || (echo "db running"; exit 1)
 
 has_postgres:
-	@[ -n "$$(docker ps -q -f ancestor="postgres:9.6")" ] || (echo "db not running"; exit 2)
+	@[ -n "$$(docker ps -q -f ancestor="postgres:9.6")" ] || (echo "db not running"; exit 1)
 
 db: has_secrets	no_postgres
 	@echo "Starting postgres container"
@@ -39,10 +39,9 @@ db: has_secrets	no_postgres
 		-p "5432:5432" \
 		--name="$(POSTGRES_DB)" \
 		--expose 5432 \
-		-e POSTGRES_DB="$(POSTGRES_DB)" \
-		-e POSTGRES_PASSWORD="$(POSTGRES_PASSWORD)" \
-		-e POSTGRES_USER="$(POSTGRES_USER)" \
+		--env-file=../.env \
 		-it postgres:9.6
+	@sleep 5
 	@diesel migration run --database-url=${DATABASE_URL}
 
 test:

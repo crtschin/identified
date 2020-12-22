@@ -26,7 +26,7 @@ table! {
     role (id) {
         id -> Int8,
         parent_id -> Nullable<Int8>,
-        name -> Nullable<Text>,
+        name -> Text,
         owner_id -> Nullable<Int8>,
     }
 }

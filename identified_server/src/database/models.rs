@@ -1,5 +1,3 @@
-#![deny(warnings)]
-
 use diesel_ltree::Ltree;
 pub mod internal_user;
 
@@ -26,6 +24,7 @@ pub struct UserRoles {
 #[derive(Queryable)]
 pub struct Role {
     pub id: i64,
+    pub parent_role: Option<i64>,
     pub name: String,
 }
 
