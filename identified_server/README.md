@@ -31,14 +31,14 @@ make db # runs postgres in a container
 TODO:
 - [X] As an admin, I should be able to add/edit/remove new internal users
 - [X] As an admin, I should be able to query all internal users
-- [] As a internal user, I should be able to log in and receive a authorization token
-- [] As an internal user, I should be able to add/edit/remove users
-- [] As an internal user, I should be able to add/edit/remove roles
-- [] As an internal user, I should be able to add/edit/remove permissions
-- [] As an internal user, I should be able to assign roles to user
-- [] As an internal user, I should be able to assign permissions to users
-- [] As an internal user, I should be able to assign permissions to roles
-- [] As an internal user, I should be able to check if a user has a specific permission
+- [ ] As a internal user, I should be able to log in and receive a authorization token
+- [ ] As an internal user, I should be able to add/edit/remove users
+- [ ] As an internal user, I should be able to add/edit/remove roles
+- [ ] As an internal user, I should be able to add/edit/remove permissions
+- [ ] As an internal user, I should be able to assign roles to user
+- [ ] As an internal user, I should be able to assign permissions to users
+- [ ] As an internal user, I should be able to assign permissions to roles
+- [ ] As an internal user, I should be able to check if a user has a specific permission
 
 Endpoints:
 - internal: GET/POST/PUT/DELETE, the admin operations
