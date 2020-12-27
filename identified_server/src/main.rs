@@ -1,5 +1,6 @@
-use identified::{
-    api::root::filters::root_filter,
+use identified_server::database::models::internal_user::SubmitInternalUser;
+use identified_server::{
+    api::root::filters::main_filter,
     database::models::internal_user::InternalUser,
     database::{establish_connection, get_connection, DatabaseConfig},
     utils::common::Session,
@@ -24,31 +25,27 @@ async fn main() {
         api_key_length: 30,
     });
 
-    let session = Session {
+    let session = Arc::new(Session {
         connection_pool: db_pool,
-    };
+    });
 
     // Either create a new root user or update the password of the root user
     // TODO: The email and password fields of the user should be externally
     //          configurable
     //
     // Should cause internal error if a connection could not be acquired.
-    let connection = get_connection(&session).unwrap();
+    let connection = get_connection(session.clone()).unwrap();
     let possible = InternalUser::find_by_email(String::from("root@admin.com"), &connection);
     let _user = match possible {
         // Update existing
-        Ok(u) => InternalUser::update_login(
-            u.id,
-            "root@admin.com".to_string(),
-            "password".to_string(),
-            db_config.clone(),
-            &connection,
-        )
-        .expect("Failure to update root user's password"),
-        Err(_) => InternalUser::create_with_values(
-            "root".to_string(),
-            "root@admin.com".to_string(),
-            "password".to_string(),
+        Ok(u) => InternalUser::update_auth_token(u.id, db_config.clone(), &connection)
+            .expect("Failure to update root user's password"),
+        Err(_) => InternalUser::create(
+            SubmitInternalUser {
+                name: "root".to_string(),
+                email: "root@admin.com".to_string(),
+                password: "password".to_string(),
+            },
             true,
             db_config.clone(),
             &connection,
@@ -58,7 +55,7 @@ async fn main() {
 
     // If the program was not built using release, try and use listenfd for
     // hot-reloading
-    let server = warp::serve(root_filter(db_config, session));
+    let server = warp::serve(main_filter(db_config, session));
     if let Ok(profile) = std::env::var("PROFILE") {
         if let "release" = profile.as_str() {
             server.run(([127, 0, 0, 1], 3000)).await;

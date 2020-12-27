@@ -1,11 +1,10 @@
-#![deny(warnings)]
-
 use crate::database::models::internal_user::InternalUser;
 use crate::database::{DatabaseConfig, PgPool};
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
 use ring::pbkdf2::PBKDF2_HMAC_SHA512;
 use ring::{digest, pbkdf2};
+use serde::{Deserialize, Serialize};
 use std::num::NonZeroU32;
 use std::sync::Arc;
 use warp::Rejection;
@@ -19,19 +18,30 @@ pub struct Session {
     pub connection_pool: PgPool,
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct WithId<T> {
+    pub id: i64,
+    #[serde(flatten)]
+    pub contained: T,
+}
+
 pub fn with_session(
-    session: Session,
-) -> impl Filter<Extract = (Session,), Error = std::convert::Infallible> + Clone {
+    session: Arc<Session>,
+) -> impl Filter<Extract = (Arc<Session>,), Error = std::convert::Infallible> + Clone {
     warp::any().map(move || session.clone())
 }
 
-pub fn with_predicate(
-    predicate: fn(InternalUser) -> Result<InternalUser, Rejection>,
-) -> impl Filter<
-    Extract = (fn(InternalUser) -> Result<InternalUser, Rejection>,),
-    Error = std::convert::Infallible,
-> + Clone {
+pub fn with_predicate<T>(
+    predicate: fn(T) -> Result<T, Rejection>,
+) -> impl Filter<Extract = (fn(T) -> Result<T, Rejection>,), Error = std::convert::Infallible> + Clone
+{
     warp::any().map(move || predicate)
+}
+
+pub fn toss<T>(
+    filter: impl Filter<Extract = (T,), Error = Rejection> + Clone,
+) -> impl Filter<Extract = (), Error = Rejection> + Clone {
+    filter.map(|_| ()).untuple_one()
 }
 
 pub fn with_db_config(

@@ -1,5 +1,3 @@
-#![deny(warnings)]
-
 pub mod models;
 pub mod schema;
 pub mod seed;
@@ -8,11 +6,12 @@ use diesel::pg::PgConnection;
 use diesel::r2d2::{ConnectionManager, Pool, PoolError, PooledConnection};
 use dotenv::dotenv;
 use ring::rand::SystemRandom;
+use std::sync::Arc;
 use std::{env, num};
 use warp::{reject, Rejection};
 
 use crate::utils::common::Session;
-use crate::utils::errors::*;
+use crate::utils::errors::DbError::DatabaseConnectionError;
 
 pub type PgPool = Pool<ConnectionManager<PgConnection>>;
 pub type PgPooledConnection = PooledConnection<ConnectionManager<PgConnection>>;
@@ -26,23 +25,22 @@ pub struct DatabaseConfig {
     pub api_key_length: usize,
 }
 
-// impl DatabaseConfig {
-//     pub fn new_test() -> DatabaseConfig {
-//         DatabaseConfig {
-//             iterations: num::NonZeroU32::new(10).unwrap(),
-//             rng: SystemRandom::new(),
-//             salt_length: 12,
-//             api_key_length: 12,
-//         }
-//     }
-// }
+impl DatabaseConfig {
+    pub fn default() -> DatabaseConfig {
+        DatabaseConfig {
+            iterations: num::NonZeroU32::new(100).unwrap(),
+            rng: SystemRandom::new(),
+            salt_length: 12,
+            api_key_length: 12,
+        }
+    }
+}
 
-pub fn get_connection(session: &Session) -> Result<PgPooledConnection, Rejection> {
+pub fn get_connection(session: Arc<Session>) -> Result<PgPooledConnection, Rejection> {
     match session.connection_pool.get() {
         Ok(connection) => Ok(connection),
         Err(err) => {
-            let msg = format!("{}", err);
-            return Err(reject::custom(DatabaseConnectionError { msg }));
+            return Err(reject::custom(DatabaseConnectionError(format!("{}", err))));
         }
     }
 }

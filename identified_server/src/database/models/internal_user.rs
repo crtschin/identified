@@ -1,7 +1,8 @@
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Duration, Utc};
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+use warp::*;
 
 use crate::database::models::*;
 use crate::database::schema::internal_user::*;
@@ -26,7 +27,7 @@ pub struct InternalUser {
 
 #[derive(Insertable)]
 #[table_name = "internal_user"]
-pub struct NewInternalUser {
+pub struct CreateInternalUser {
     pub name: String,
     pub email: String,
     pub password: Vec<u8>,
@@ -37,116 +38,52 @@ pub struct NewInternalUser {
 
 #[derive(AsChangeset, Identifiable)]
 #[table_name = "internal_user"]
-pub struct ChangeLogin {
+pub struct UpdateInternalUser {
     pub id: i64,
+    pub name: String,
     pub email: String,
     pub password: Vec<u8>,
     pub salt: String,
 }
 
-#[derive(AsChangeset, Identifiable)]
-#[table_name = "internal_user"]
-pub struct UpdateToken {
-    pub id: i64,
-    pub auth_token: String,
-    pub expires_on: DateTime<Utc>,
-}
-
-#[derive(AsChangeset, Identifiable)]
-#[table_name = "internal_user"]
-pub struct SuccessfullLogin {
-    pub id: i64,
-    pub last_login: DateTime<Utc>,
-    pub auth_token: String,
-    pub expires_on: DateTime<Utc>,
+#[derive(Serialize, Deserialize)]
+pub struct SubmitInternalUser {
+    pub name: String,
+    pub email: String,
+    pub password: String,
 }
 
 // TODO: Swap Error with a custom error type
 impl InternalUser {
-    // pub fn create_root_user(
-    //     root_password: String,
-    //     root_salt: String,
-    //     iterations: NonZeroU32,
-    //     connection: &PgConnection,
-    // ) {
-    //     let hashed = hash_password(root_password, root_salt.clone(), iterations);
-    //     // TODO: load this from a config file
-    //     let root_user = NewInternalUser {
-    //         name: "root".to_string(),
-    //         email: "root@admin.com".to_string(),
-    //         password: hashed.to_vec(),
-    //         salt: root_salt,
-    //         created_on: Utc::now(),
-    //     };
-
-    //     diesel::insert_into(internal_user::table)
-    //         .values(vec![root_user])
-    //         .get_result::<InternalUser>(connection)
-    //         .expect("Error registering new user");
-    // }
-
-    pub fn create_with_values(
-        user_name: String,
-        user_email: String,
-        user_password: String,
-        is_admin: bool,
-        db_config: Arc<DatabaseConfig>,
-        connection: &PgConnection,
-    ) -> Result<InternalUser, Error> {
-        // First check if the user already exists
-        let possible_user = InternalUser::find_by_email(user_email.clone(), connection);
-        match possible_user {
-            Ok(_) => {
-                return Err(Error::Input(InputError {
-                    fields: (String::from("email"), ValidationError::AlreadyExists),
-                }));
-            }
-            Err(err) => match err {
-                diesel::result::Error::NotFound => {
-                    let user_salt = random_string(db_config.salt_length);
-                    let hashed =
-                        hash_password(user_password, user_salt.clone(), db_config.iterations);
-                    let new_user = NewInternalUser {
-                        name: user_name,
-                        email: user_email,
-                        password: hashed.to_vec(),
-                        salt: user_salt,
-                        created_on: Utc::now(),
-                        admin: is_admin,
-                    };
-                    InternalUser::create(new_user, connection).map_err(|e| {
-                        let msg = format!("{}", e);
-                        Error::Db(DatabaseConnectionError { msg })
-                    })
-                }
-                _ => {
-                    let msg = format!("{}", err);
-                    Err(Error::Db(DatabaseConnectionError { msg }))
-                }
-            },
-        }
+    pub fn all(connection: &PgConnection) -> Result<Vec<InternalUser>, diesel::result::Error> {
+        dsl::internal_user.load(connection)
     }
 
     pub fn create(
-        new: NewInternalUser,
+        new: SubmitInternalUser,
+        is_admin: bool,
+        db_config: Arc<DatabaseConfig>,
         connection: &PgConnection,
     ) -> Result<InternalUser, diesel::result::Error> {
+        let user_salt = random_string(db_config.salt_length);
+        let hashed = hash_password(new.password, user_salt.clone(), db_config.iterations);
         diesel::insert_into(internal_user::table)
-            .values(vec![new])
+            .values(vec![CreateInternalUser {
+                name: new.name,
+                email: new.email,
+                password: hashed.to_vec(),
+                salt: user_salt,
+                created_on: Utc::now(),
+                admin: is_admin,
+            }])
             .get_result::<InternalUser>(connection)
     }
 
-    pub fn all(connection: &PgConnection) -> Vec<InternalUser> {
-        dsl::internal_user
-            .load(connection)
-            .expect("Error loading users")
-    }
-
-    pub fn find(
-        iuser_id: i64,
+    pub fn find_by_id(
+        by_id: i64,
         connection: &PgConnection,
     ) -> Result<InternalUser, diesel::result::Error> {
-        dsl::internal_user.find(iuser_id).first(connection)
+        dsl::internal_user.find(by_id).first(connection)
     }
 
     pub fn find_by_email(
@@ -167,31 +104,45 @@ impl InternalUser {
             .first(connection)
     }
 
-    pub fn update_login(
+    pub fn delete(by_id: i64, connection: &PgConnection) -> Result<usize, diesel::result::Error> {
+        diesel::delete(dsl::internal_user.filter(id.eq(by_id))).execute(connection)
+    }
+
+    pub fn update(
         by_id: i64,
-        new_email: String,
-        new_password: String,
+        new: SubmitInternalUser,
         db_config: Arc<DatabaseConfig>,
         connection: &PgConnection,
     ) -> Result<InternalUser, diesel::result::Error> {
         let user_salt = random_string(db_config.salt_length);
-        let hashed = hash_password(new_password, user_salt.clone(), db_config.iterations);
+        let hashed = hash_password(new.password, user_salt.clone(), db_config.iterations);
+        let new_token = random_string(db_config.api_key_length);
         diesel::update(internal_user::table)
-            .set(ChangeLogin {
-                id: by_id,
-                email: new_email,
-                password: hashed.to_vec(),
-                salt: user_salt,
-            })
+            .set((
+                UpdateInternalUser {
+                    id: by_id,
+                    name: new.name,
+                    email: new.email,
+                    password: hashed.to_vec(),
+                    salt: user_salt,
+                },
+                auth_token.eq(new_token),
+            ))
             .get_result(connection)
     }
 
-    pub fn successfull_login(
-        login: SuccessfullLogin,
+    pub fn update_auth_token(
+        by_id: i64,
+        db_config: Arc<DatabaseConfig>,
         connection: &PgConnection,
     ) -> Result<InternalUser, diesel::result::Error> {
-        diesel::update(internal_user::table)
-            .set(login)
+        let new_token = random_string(db_config.api_key_length);
+        diesel::update(internal_user::table.filter(id.eq(by_id)))
+            .set((
+                auth_token.eq(new_token),
+                last_login.eq(Utc::now()),
+                expires_on.eq(Utc::now() + Duration::minutes(120)),
+            ))
             .get_result(connection)
     }
 }

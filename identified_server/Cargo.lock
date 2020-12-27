@@ -505,7 +505,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "identified"
+name = "identified_server"
 version = "0.1.0"
 dependencies = [
  "chrono 0.4.19 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -513,6 +513,7 @@ dependencies = [
  "diesel_ltree 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "dotenv 0.15.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "failure 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "http 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "listenfd 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "md5 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "openssl 0.10.31 (registry+https://github.com/rust-lang/crates.io-index)",

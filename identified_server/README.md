@@ -28,29 +28,25 @@ source env.sh
 make db # runs postgres in a container
 ```
 
-Usage:
-- all: prints all internal users (admin)
-- register: new internal users (admin)
+TODO:
+- [X] As an admin, I should be able to add/edit/remove new internal users
+- [X] As an admin, I should be able to query all internal users
+- [] As a internal user, I should be able to log in and receive a authorization token
+- [] As an internal user, I should be able to add/edit/remove users
+- [] As an internal user, I should be able to add/edit/remove roles
+- [] As an internal user, I should be able to add/edit/remove permissions
+- [] As an internal user, I should be able to assign roles to user
+- [] As an internal user, I should be able to assign permissions to users
+- [] As an internal user, I should be able to assign permissions to roles
+- [] As an internal user, I should be able to check if a user has a specific permission
+
+Endpoints:
+- internal: GET/POST/PUT/DELETE, the admin operations
 - login: send json object containing email and password for auth token
-- internal: requires auth token in the header under authorization
-  - user
-    - /post: register new users
-    - /get: get roles/permissions
-    - /delete
-  - permission
-    - /post: create new permissions
-    - /get: users/roles
-    - /delete
-  - roles
-    - /post: create new roles
-    - /get: users/permissions
-    - /delete
-  - grant
-    - /user_id: roles and permissions
-    - /role_id: permission
-  - revoke
-    - /user_id: roles and permissions
-    - /role_id: permission
-  - check
-    - /user_id: permission
-  -  ...manage permissions/roles/check authorization
+- user: GET/POST/PUT/DELETE
+- permission: GET/POST/PUT/DELETE
+- roles: GET/POST/PUT/DELETE
+- user/role: GET/POST/PUT/DELETE 
+- user/permission: GET/POST/PUT/DELETE
+- role/permission: GET/POST/PUT/DELETE
+-  ...manage permissions/roles/check authorization

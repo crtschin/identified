@@ -1,3 +1,4 @@
+use diesel::prelude::*;
 use diesel_ltree::Ltree;
 pub mod internal_user;
 

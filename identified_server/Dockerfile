@@ -1,5 +1,5 @@
 FROM ekidd/rust-musl-builder as planner
-run cargo install cargo-chef
+RUN cargo install cargo-chef
 COPY . .
 RUN cargo chef prepare --recipe-path recipe.json
 
@@ -16,10 +16,10 @@ RUN chown rust:rust .
 COPY . .
 COPY --from=cacher home/rust/src/target target
 COPY --from=cacher home/rust/.cargo ../.cargo
-RUN cargo build --release --bin identified
+RUN cargo build --release --bin identified_server
 
 
 FROM scratch
-WORKDIR /usr/src/identified
-COPY --from=builder /home/rust/target/x86_64-unknown-linux-musl/release/identified .
-ENTRYPOINT ["./identified"]
+WORKDIR /usr/src/identified_server
+COPY --from=builder /home/rust/target/x86_64-unknown-linux-musl/release/identified_server .
+ENTRYPOINT ["./identified_server"]
