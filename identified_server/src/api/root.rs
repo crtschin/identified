@@ -38,11 +38,7 @@ pub mod filters {
         session: Arc<Session>,
         permission_streams: PermissionStreams,
     ) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
-        let login = warp::path("login").and(login_filter(
-            db_config.clone(),
-            session.clone(),
-            permission_streams.clone(),
-        ));
+        let login = warp::path("login").and(login_filter(db_config.clone(), session.clone()));
         let internal = warp::path("internal")
             .and(toss(with_authorization(true, session.clone())))
             .and(internal_filter(db_config.clone(), session.clone()));
@@ -70,7 +66,7 @@ pub mod filters {
                     })
                 },
             );
-        warp::any().and(check.or(internal.or(login.or(subscribe))))
+        warp::any().and(check.or(internal).or(login).or(subscribe))
     }
 
     fn check_filter(
@@ -81,7 +77,8 @@ pub mod filters {
         warp::any()
             .and(warp::get())
             .and(with_db_config(db_config))
-            .and(with_session(session))
+            .and(with(session))
+            .and(with(permission_streams))
             .and(warp::body::json())
             .and(end())
             .and_then(handlers::check)
@@ -90,11 +87,10 @@ pub mod filters {
     fn login_filter(
         db_config: Arc<DatabaseConfig>,
         session: Arc<Session>,
-        permission_streams: PermissionStreams,
     ) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
         warp::any()
             .and(with_db_config(db_config))
-            .and(with_session(session))
+            .and(with(session))
             .and(warp::post())
             .and(warp::body::json())
             .and(end())
@@ -105,7 +101,6 @@ pub mod filters {
 mod handlers {
     use super::*;
     use crate::utils::errors::AuthenticationError::*;
-    use crate::utils::errors::ServerError::SerializationError;
     use warp::{filters::ws::Message, ws::WebSocket};
 
     #[derive(Serialize, Deserialize)]
@@ -130,10 +125,10 @@ mod handlers {
     pub async fn check(
         db_config: Arc<DatabaseConfig>,
         session: Arc<Session>,
+        permission_streams: PermissionStreams,
         check: CheckRequest,
     ) -> Result<impl Reply, Rejection> {
         let connection = get_connection(session)?;
-        // TODO:
         // 1. Find permissions the internal user the user belongs to has
         // 2. Find the parent permissions of the requested permission
         // 3. Check if any of the user's role has any of those permissions
@@ -204,7 +199,7 @@ mod handlers {
 
         while let Some(result) = ws_stream.next().await {
             match result {
-                Ok(msg) => {}
+                Ok(_) => {}
                 Err(e) => {
                     eprintln!("Websocket error (iuser_id = {}): {}", iuser.id, e);
                     break;

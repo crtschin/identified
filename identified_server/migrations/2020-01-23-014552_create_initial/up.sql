@@ -25,8 +25,7 @@ create table "user_role" (
 
 create table "role" (
   "id" bigserial primary key,
-  "parent_id" bigint,
-  "name" text,
+  "name" ltree not null,
   "owner_id" bigint
 );
 
@@ -38,8 +37,7 @@ create table "role_permission" (
 
 create table "permission" (
   "id" bigserial primary key,
-  "name" varchar,
-  "parent_id" bigint,
+  "name" ltree not null,
   "owner_id" bigint not null
 );
 
@@ -52,11 +50,9 @@ create table "user_permission" (
 alter table "user" add constraint "user_fk_owner_id" foreign key ("owner_id") references "internal_user" ("id");
 alter table "user_role" add constraint "user_role_fk_user_id" foreign key ("user_id") references "user" ("id");
 alter table "user_role" add constraint "user_role_fk_role_id" foreign key ("role_id") references "role" ("id");
-alter table "role" add constraint "role_fk_parent_id" foreign key ("parent_id") references "role" ("id");
 alter table "role" add constraint "role_fk_owner_id" foreign key ("owner_id") references "internal_user" ("id");
 alter table "role_permission" add constraint "role_permission_fk_role_id" foreign key ("role_id") references "role" ("id");
 alter table "role_permission" add constraint "role_permission_fk_permission_id" foreign key ("permission_id") references "permission" ("id");
-alter table "permission" add constraint "permission_fk_parent_id" foreign key ("parent_id") references "permission" ("id");
 alter table "permission" add constraint "permission_fk_owner_id" foreign key ("owner_id") references "internal_user" ("id");
 alter table "user_permission" add constraint "user_permission_fk_user_id" foreign key ("user_id") references "user" ("id");
 alter table "user_permission" add constraint "user_permission_fk_permission_id" foreign key ("permission_id") references "permission" ("id");

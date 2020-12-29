@@ -40,7 +40,7 @@ db: has_secrets	no_postgres
 		--name="$(POSTGRES_DB)" \
 		--expose 5432 \
 		--env-file=../.env \
-		-it postgres:9.6
+		-it postgres:13-alpine
 	@sleep 5
 	@diesel migration run --database-url=${DATABASE_URL}
 

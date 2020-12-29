@@ -25,10 +25,10 @@ pub struct WithId<T> {
     pub contained: T,
 }
 
-pub fn with_session(
-    session: Arc<Session>,
-) -> impl Filter<Extract = (Arc<Session>,), Error = std::convert::Infallible> + Clone {
-    warp::any().map(move || session.clone())
+pub fn with<T: Send + Sync>(
+    item: Arc<T>,
+) -> impl Filter<Extract = (Arc<T>,), Error = std::convert::Infallible> + Clone {
+    warp::any().map(move || item.clone())
 }
 
 pub fn with_predicate<T>(

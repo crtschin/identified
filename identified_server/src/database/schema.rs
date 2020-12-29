@@ -1,4 +1,7 @@
 table! {
+    use diesel::sql_types::*;
+    use diesel_ltree::*;
+
     internal_user (id) {
         id -> Int8,
         name -> Text,
@@ -14,24 +17,31 @@ table! {
 }
 
 table! {
+    use diesel::sql_types::*;
+    use diesel_ltree::*;
+
     permission (id) {
         id -> Int8,
-        name -> Nullable<Varchar>,
-        parent_id -> Nullable<Int8>,
+        name -> Ltree,
         owner_id -> Int8,
     }
 }
 
 table! {
+    use diesel::sql_types::*;
+    use diesel_ltree::*;
+
     role (id) {
         id -> Int8,
-        parent_id -> Nullable<Int8>,
-        name -> Text,
+        name -> Ltree,
         owner_id -> Nullable<Int8>,
     }
 }
 
 table! {
+    use diesel::sql_types::*;
+    use diesel_ltree::*;
+
     role_permission (id) {
         id -> Int8,
         role_id -> Int8,
@@ -40,6 +50,9 @@ table! {
 }
 
 table! {
+    use diesel::sql_types::*;
+    use diesel_ltree::*;
+
     user (id) {
         id -> Int8,
         name -> Nullable<Text>,
@@ -48,6 +61,9 @@ table! {
 }
 
 table! {
+    use diesel::sql_types::*;
+    use diesel_ltree::*;
+
     user_permission (id) {
         id -> Int8,
         user_id -> Int8,
@@ -56,6 +72,9 @@ table! {
 }
 
 table! {
+    use diesel::sql_types::*;
+    use diesel_ltree::*;
+
     user_role (id) {
         id -> Int8,
         user_id -> Int8,

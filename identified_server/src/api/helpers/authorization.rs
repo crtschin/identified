@@ -5,7 +5,7 @@ use warp::{reject, Filter, Rejection};
 use crate::{
     database::get_connection,
     database::models::internal_user::InternalUser,
-    utils::common::{with_session, Session},
+    utils::common::{with, Session},
     utils::errors::*,
 };
 
@@ -29,7 +29,7 @@ pub fn with_authorization(
         false => default,
     };
     warp::any()
-        .and(with_session(session))
+        .and(with(session))
         .and(warp::header::optional::<String>("authorization"))
         .and(with_predicate(predicate))
         .and_then(check_authorized)

@@ -28,7 +28,7 @@ pub mod filters {
     ) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
         warp::any()
             .and(warp::get())
-            .and(with_session(session))
+            .and(with(session))
             .and(end())
             .and_then(handlers::all)
     }
@@ -42,7 +42,7 @@ pub mod filters {
             .and(warp::body::content_length_limit(1024 * 16))
             .and(warp::body::json())
             .and(with_db_config(db_config))
-            .and(with_session(session))
+            .and(with(session))
             .and(end())
             .and_then(handlers::create)
     }
@@ -56,7 +56,7 @@ pub mod filters {
             .and(warp::body::content_length_limit(1024 * 16))
             .and(warp::body::json())
             .and(with_db_config(db_config))
-            .and(with_session(session))
+            .and(with(session))
             .and(end())
             .and_then(handlers::update)
     }
@@ -66,7 +66,7 @@ pub mod filters {
     ) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
         warp::any()
             .and(warp::delete())
-            .and(with_session(session))
+            .and(with(session))
             .and(end())
             .and_then(handlers::all)
     }
