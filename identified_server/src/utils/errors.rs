@@ -7,6 +7,7 @@ impl reject::Reject for ValidationError {}
 impl reject::Reject for InputError {}
 impl reject::Reject for AuthenticationError {}
 impl reject::Reject for AuthorizationError {}
+impl reject::Reject for ServerError {}
 
 #[derive(Serialize)]
 struct ErrorMessage {
@@ -16,10 +17,16 @@ struct ErrorMessage {
 
 #[derive(Serialize, Debug)]
 pub enum Error {
+    Server(ServerError),
     Db(DbError),
     Input(InputError),
     Authentication(AuthenticationError),
     Authorization(AuthorizationError),
+}
+
+#[derive(Serialize, Debug)]
+pub enum ServerError {
+    SerializationError(String),
 }
 
 #[derive(Serialize, Debug)]

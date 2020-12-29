@@ -7,8 +7,10 @@ use identified_server::{
 };
 use listenfd::ListenFd;
 use ring::rand::*;
+use std::collections::HashMap;
 use std::num::NonZeroU32;
 use std::sync::Arc;
+use std::sync::Mutex;
 
 #[tokio::main]
 async fn main() {
@@ -55,7 +57,11 @@ async fn main() {
 
     // If the program was not built using release, try and use listenfd for
     // hot-reloading
-    let server = warp::serve(main_filter(db_config, session));
+    let server = warp::serve(main_filter(
+        db_config,
+        session,
+        Arc::new(Mutex::new(HashMap::new())),
+    ));
     if let Ok(profile) = std::env::var("PROFILE") {
         if let "release" = profile.as_str() {
             server.run(([127, 0, 0, 1], 3000)).await;
